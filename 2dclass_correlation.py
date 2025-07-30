@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import cv2
@@ -102,7 +103,7 @@ class SystemMonitor(QWidget):
         self.ram_label = QLabel("RAM: 0%")
         self.gpu_label = QLabel("GPU: N/A")
         
-        layout.addWidget(QLabel("📊"))
+        layout.addWidget(QLabel("??"))
         layout.addWidget(self.cpu_label)
         layout.addWidget(QLabel("|"))
         layout.addWidget(self.ram_label)
@@ -815,7 +816,7 @@ class ZoomableViewer(QDialog):
     """Enhanced comparison viewer with better controls"""
     def __init__(self, s1, s2, score, angle, metadata=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🔍 Pairwise Comparison")
+        self.setWindowTitle("?? Pairwise Comparison")
         self.setMinimumSize(600, 400)
         self.resize(800, 600)
         
@@ -835,7 +836,7 @@ class ZoomableViewer(QDialog):
         info_layout = QHBoxLayout(info_widget)
         
         # Score info
-        score_label = QLabel(f"📊 <b>Score: {score:.4f}</b>")
+        score_label = QLabel(f"?? <b>Score: {score:.4f}</b>")
         score_label.setStyleSheet("font-size: 14px; color: #2c3e50;")
         
         # Metadata info
@@ -843,13 +844,13 @@ class ZoomableViewer(QDialog):
             meta_text = f"T:{self.metadata.get('texture_score', 0):.3f} " \
                        f"E:{self.metadata.get('edge_score', 0):.3f} " \
                        f"Q:{self.metadata.get('quality_score', 0):.3f}"
-            meta_label = QLabel(f"📈 {meta_text}")
+            meta_label = QLabel(f"?? {meta_text}")
             meta_label.setStyleSheet("font-size: 11px; color: #7f8c8d;")
         else:
             meta_label = QLabel()
             
         # Comparison info
-        comp_label = QLabel(f"🔄 {self.s1.unique_id} vs {self.s2.unique_id} (↻{self.angle}°)")
+        comp_label = QLabel(f"?? {self.s1.unique_id} vs {self.s2.unique_id} (?{self.angle}deg)")
         comp_label.setStyleSheet("font-size: 12px; color: #34495e;")
         
         info_layout.addWidget(score_label)
@@ -869,13 +870,13 @@ class ZoomableViewer(QDialog):
         controls = QWidget()
         controls_layout = QHBoxLayout(controls)
         
-        zoom_label = QLabel("🔍 Zoom:")
+        zoom_label = QLabel("?? Zoom:")
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
         self.zoom_slider.setRange(25, 400)
         self.zoom_slider.setValue(100)
         self.zoom_slider.valueChanged.connect(self._on_zoom_changed)
         
-        reset_btn = QPushButton("🔄 Reset")
+        reset_btn = QPushButton("?? Reset")
         reset_btn.clicked.connect(self._reset_zoom)
         
         controls_layout.addWidget(zoom_label)
@@ -942,7 +943,7 @@ class EnhancedHeatmapViewer(QDialog):
     """Enhanced heatmap viewer with better interactivity"""
     def __init__(self, subsquares, data, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🌡️ Correlation Heatmap")
+        self.setWindowTitle("??? Correlation Heatmap")
         self.setMinimumSize(900, 700)
         self.resize(1200, 800)
         
@@ -960,7 +961,7 @@ class EnhancedHeatmapViewer(QDialog):
         controls_layout = QHBoxLayout(controls)
         
         # Colorscale selection
-        controls_layout.addWidget(QLabel("🎨 Colorscale:"))
+        controls_layout.addWidget(QLabel("?? Colorscale:"))
         self.colorscale_combo = QComboBox()
         self.colorscale_combo.addItems([
             'Viridis', 'Plasma', 'Inferno', 'Magma', 'Cividis',
@@ -970,7 +971,7 @@ class EnhancedHeatmapViewer(QDialog):
         controls_layout.addWidget(self.colorscale_combo)
         
         # Threshold slider
-        controls_layout.addWidget(QLabel("🎯 Min Score:"))
+        controls_layout.addWidget(QLabel("?? Min Score:"))
         self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.threshold_slider.setRange(0, 100)
         self.threshold_slider.setValue(0)
@@ -1013,11 +1014,11 @@ class EnhancedHeatmapViewer(QDialog):
         # Calculate statistics
         valid_scores = scores[~np.isnan(scores_filtered)]
         if len(valid_scores) > 0:
-            stats_text = f"📊 Mean: {np.mean(valid_scores):.3f} | " \
+            stats_text = f"?? Mean: {np.mean(valid_scores):.3f} | " \
                         f"Max: {np.max(valid_scores):.3f} | " \
                         f"Valid: {len(valid_scores)}/{scores.size}"
         else:
-            stats_text = "📊 No data above threshold"
+            stats_text = "?? No data above threshold"
             
         self.stats_label.setText(stats_text)
         
@@ -1037,7 +1038,7 @@ class EnhancedHeatmapViewer(QDialog):
         
         fig.update_layout(
             title={
-                'text': "🌡️ Cross-Correlation Matrix (Click to Compare)",
+                'text': "??? Cross-Correlation Matrix (Click to Compare)",
                 'x': 0.5,
                 'font': {'size': 16}
             },
@@ -1084,7 +1085,7 @@ class TopPairsGallery(QDialog):
     """Enhanced gallery with filtering and sorting options"""
     def __init__(self, data, subsquares, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🏆 Top Correlated Pairs")
+        self.setWindowTitle("?? Top Correlated Pairs")
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
         
@@ -1102,7 +1103,7 @@ class TopPairsGallery(QDialog):
         controls_layout = QHBoxLayout(controls)
         
         # Number of pairs
-        controls_layout.addWidget(QLabel("📈 Show top:"))
+        controls_layout.addWidget(QLabel("?? Show top:"))
         self.count_spin = QSpinBox()
         self.count_spin.setRange(10, 1000)
         self.count_spin.setValue(50)
@@ -1110,7 +1111,7 @@ class TopPairsGallery(QDialog):
         controls_layout.addWidget(self.count_spin)
         
         # Minimum score filter
-        controls_layout.addWidget(QLabel("🎯 Min score:"))
+        controls_layout.addWidget(QLabel("?? Min score:"))
         self.min_score_spin = QDoubleSpinBox()
         self.min_score_spin.setRange(0.0, 1.0)
         self.min_score_spin.setValue(0.0)
@@ -1180,9 +1181,9 @@ class TopPairsGallery(QDialog):
         if pairs:
             avg_score = np.mean([p[2] for p in pairs])
             max_score = max(p[2] for p in pairs)
-            stats_text = f"📊 Showing {len(pairs)} pairs | Avg: {avg_score:.3f} | Max: {max_score:.3f}"
+            stats_text = f"?? Showing {len(pairs)} pairs | Avg: {avg_score:.3f} | Max: {max_score:.3f}"
         else:
-            stats_text = "📊 No pairs match criteria"
+            stats_text = "?? No pairs match criteria"
             
         self.stats_label.setText(stats_text)
         
@@ -1268,16 +1269,16 @@ class TopPairsGallery(QDialog):
         info_layout.setSpacing(5)
         
         # Title
-        title_label = QLabel(f"<b>{s1.grid_id} ↔ {s2.grid_id}</b>")
+        title_label = QLabel(f"<b>{s1.grid_id} ? {s2.grid_id}</b>")
         title_label.setStyleSheet("font-size: 14px; color: #2c3e50;")
         
         # Score info
-        score_label = QLabel(f"📊 Score: <b>{score:.4f}</b>")
+        score_label = QLabel(f"?? Score: <b>{score:.4f}</b>")
         score_label.setStyleSheet("font-size: 12px; color: #27ae60;")
         
         # Additional info
-        angle_label = QLabel(f"🔄 Rotation: {angle}°")
-        quality_label = QLabel(f"⭐ Quality: {quality:.3f}")
+        angle_label = QLabel(f"?? Rotation: {angle}deg")
+        quality_label = QLabel(f"? Quality: {quality:.3f}")
         
         for label in [angle_label, quality_label]:
             label.setStyleSheet("font-size: 11px; color: #7f8c8d;")
@@ -1289,7 +1290,7 @@ class TopPairsGallery(QDialog):
         info_layout.addStretch()
         
         # View button
-        view_btn = QPushButton("🔍 View Details")
+        view_btn = QPushButton("?? View Details")
         view_btn.setStyleSheet("""
             QPushButton {
                 background-color: #3498db;
@@ -1349,9 +1350,9 @@ class InteractiveImageViewer(QLabel):
         
         # Instructions
         self.setToolTip(
-            "🖱️ Left-click & drag: Select area\n"
-            "🖱️ Right-click & drag: Pan image\n"
-            "🖱️ Scroll wheel: Zoom in/out\n"
+            "??? Left-click & drag: Select area\n"
+            "??? Right-click & drag: Pan image\n"
+            "??? Scroll wheel: Zoom in/out\n"
             "Double-click: Reset view"
         )
         
@@ -1469,7 +1470,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("🔬 2D Class Average Analysis Tool v2.0")
+        self.setWindowTitle("?? 2D Class Average Analysis Tool v2.0")
         self.setGeometry(100, 100, 1400, 900)
         
         # Data
@@ -1567,14 +1568,14 @@ class EnhancedImageAnalysisApp(QMainWindow):
         layout = QVBoxLayout(panel)
         
         # File operations
-        file_group = QGroupBox("📁 File Operations")
+        file_group = QGroupBox("?? File Operations")
         file_layout = QGridLayout(file_group)
         
-        self.load_btn = QPushButton("📂 Load Images")
+        self.load_btn = QPushButton("?? Load Images")
         self.load_btn.clicked.connect(self._load_images)
         self.load_btn.setToolTip("Load multiple image files for analysis")
         
-        self.clear_btn = QPushButton("🗑️ Clear All")
+        self.clear_btn = QPushButton("??? Clear All")
         self.clear_btn.clicked.connect(self._clear_all)
         self.clear_btn.setToolTip("Clear all loaded data")
         
@@ -1582,11 +1583,11 @@ class EnhancedImageAnalysisApp(QMainWindow):
         file_layout.addWidget(self.clear_btn, 1, 0, 1, 2)
         
         # Detection mode
-        mode_group = QGroupBox("🔍 Detection Mode")
+        mode_group = QGroupBox("?? Detection Mode")
         mode_layout = QVBoxLayout(mode_group)
         
-        self.auto_radio = QRadioButton("🤖 Automatic Detection")
-        self.ref_radio = QRadioButton("🎯 Reference-Based")
+        self.auto_radio = QRadioButton("?? Automatic Detection")
+        self.ref_radio = QRadioButton("?? Reference-Based")
         self.auto_radio.setChecked(True)
         
         self.mode_group = QButtonGroup()
@@ -1594,7 +1595,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         self.mode_group.addButton(self.ref_radio)
         self.mode_group.buttonToggled.connect(self._update_ui_states)
         
-        self.select_ref_btn = QPushButton("🎯 Select Reference Square")
+        self.select_ref_btn = QPushButton("?? Select Reference Square")
         self.select_ref_btn.clicked.connect(self._select_reference)
         self.select_ref_btn.setToolTip("Select a reference square for template matching")
         
@@ -1603,7 +1604,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         mode_layout.addWidget(self.select_ref_btn)
         
         # Parameters
-        params_group = QGroupBox("⚙️ Parameters")
+        params_group = QGroupBox("?? Parameters")
         params_layout = QGridLayout(params_group)
         
         # Min square size
@@ -1632,18 +1633,18 @@ class EnhancedImageAnalysisApp(QMainWindow):
         params_layout.addWidget(self.ref_thresh_spin, 2, 1)
         
         # Processing controls
-        process_group = QGroupBox("🚀 Processing")
+        process_group = QGroupBox("?? Processing")
         process_layout = QGridLayout(process_group)
         
-        self.detect_btn = QPushButton("🔍 Detect Squares")
+        self.detect_btn = QPushButton("?? Detect Squares")
         self.detect_btn.clicked.connect(self._start_detection)
         self.detect_btn.setToolTip("Start automatic square detection")
         
-        self.analyze_btn = QPushButton("📊 Analyze Correlations")
+        self.analyze_btn = QPushButton("?? Analyze Correlations")
         self.analyze_btn.clicked.connect(self._start_analysis)
         self.analyze_btn.setToolTip("Calculate cross-correlations between squares")
         
-        self.stop_btn = QPushButton("⏹️ Stop")
+        self.stop_btn = QPushButton("?? Stop")
         self.stop_btn.clicked.connect(self._stop_processing)
         self.stop_btn.setToolTip("Stop current processing")
         
@@ -1652,7 +1653,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         process_layout.addWidget(self.stop_btn, 1, 0, 1, 2)
         
         # Progress
-        progress_group = QGroupBox("📈 Progress")
+        progress_group = QGroupBox("?? Progress")
         progress_layout = QVBoxLayout(progress_group)
         
         self.progress_bar = EnhancedProgressBar()
@@ -1662,18 +1663,18 @@ class EnhancedImageAnalysisApp(QMainWindow):
         progress_layout.addWidget(self.loading_widget)
         
         # Results
-        results_group = QGroupBox("📋 Results")
+        results_group = QGroupBox("?? Results")
         results_layout = QVBoxLayout(results_group)
         
-        self.heatmap_btn = QPushButton("🌡️ Show Heatmap")
+        self.heatmap_btn = QPushButton("??? Show Heatmap")
         self.heatmap_btn.clicked.connect(self._show_heatmap)
         self.heatmap_btn.setToolTip("Display correlation heatmap")
         
-        self.gallery_btn = QPushButton("🏆 Show Top Pairs")
+        self.gallery_btn = QPushButton("?? Show Top Pairs")
         self.gallery_btn.clicked.connect(self._show_gallery)
         self.gallery_btn.setToolTip("View gallery of best matches")
         
-        self.export_btn = QPushButton("💾 Export Results")
+        self.export_btn = QPushButton("?? Export Results")
         self.export_btn.clicked.connect(self._export_results)
         self.export_btn.setToolTip("Export correlation data to CSV")
         
@@ -1698,7 +1699,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         layout = QVBoxLayout(panel)
         
         # Header
-        header = QLabel("📊 Analysis Results")
+        header = QLabel("?? Analysis Results")
         header.setStyleSheet("""
             QLabel {
                 font-size: 18px;
@@ -1759,8 +1760,8 @@ class EnhancedImageAnalysisApp(QMainWindow):
             }
         """)
         
-        self.results_tabs.addTab(self.detection_scroll, "🔍 Detected Squares")
-        self.results_tabs.addTab(self.stats_widget, "📈 Statistics")
+        self.results_tabs.addTab(self.detection_scroll, "?? Detected Squares")
+        self.results_tabs.addTab(self.stats_widget, "?? Statistics")
         
         layout.addWidget(self.results_tabs)
         
@@ -1771,7 +1772,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         status_bar = self.statusBar()
         
         # Main status label
-        self.status_label = QLabel("🚀 Ready to analyze images!")
+        self.status_label = QLabel("?? Ready to analyze images!")
         self.status_label.setStyleSheet("color: #2c3e50; font-weight: bold;")
         
         # System monitor
@@ -1835,7 +1836,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
                 self.ref_square = None
                 self._clear_results()
                 
-                self.status_label.setText(f"📁 Loaded {len(paths)} images")
+                self.status_label.setText(f"?? Loaded {len(paths)} images")
                 self._update_ui_states()
                 self._update_stats()
                 
@@ -1847,7 +1848,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         self.ref_square = None
         
         self._clear_results()
-        self.status_label.setText("🗑️ All data cleared")
+        self.status_label.setText("??? All data cleared")
         self._update_ui_states()
         self._update_stats()
         
@@ -1868,7 +1869,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
             return
             
         dialog = QDialog(self)
-        dialog.setWindowTitle("🎯 Select Reference Square")
+        dialog.setWindowTitle("?? Select Reference Square")
         dialog.setMinimumSize(900, 700)
         dialog.resize(1000, 800)
         
@@ -1876,12 +1877,12 @@ class EnhancedImageAnalysisApp(QMainWindow):
         
         # Instructions
         instructions = QLabel("""
-        <b>📋 Instructions:</b><br>
-        1. 📂 Choose an image from the dropdown<br>
-        2. 🖱️ Right-click & drag to pan the image<br>
-        3. 🖱️ Scroll wheel to zoom in/out<br>
-        4. 🖱️ Left-click & drag to select reference square<br>
-        5. ✅ Click OK to confirm selection
+        <b>?? Instructions:</b><br>
+        1. ?? Choose an image from the dropdown<br>
+        2. ??? Right-click & drag to pan the image<br>
+        3. ??? Scroll wheel to zoom in/out<br>
+        4. ??? Left-click & drag to select reference square<br>
+        5. ? Click OK to confirm selection
         """)
         instructions.setStyleSheet("""
             QLabel {
@@ -1896,7 +1897,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         
         # Image selector
         selector_layout = QHBoxLayout()
-        selector_layout.addWidget(QLabel("📁 Image:"))
+        selector_layout.addWidget(QLabel("?? Image:"))
         
         image_combo = QComboBox()
         image_combo.addItems([os.path.basename(p) for p in self.image_paths])
@@ -1911,7 +1912,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         layout.addWidget(viewer)
         
         # Selection info
-        self.selection_info = QLabel("📏 No selection")
+        self.selection_info = QLabel("?? No selection")
         self.selection_info.setStyleSheet("font-weight: bold; color: #e74c3c;")
         layout.addWidget(self.selection_info)
         
@@ -1929,11 +1930,11 @@ class EnhancedImageAnalysisApp(QMainWindow):
         def on_image_changed(index):
             viewer.set_image(self.image_paths[index])
             selection.clear()
-            self.selection_info.setText("📏 No selection")
+            self.selection_info.setText("?? No selection")
             
         def on_selection(x, y, w, h):
             selection.update({'rect': (x, y, w, h)})
-            self.selection_info.setText(f"📏 Selected: {w}×{h} at ({x}, {y})")
+            self.selection_info.setText(f"?? Selected: {w}x{h} at ({x}, {y})")
             
             # Auto-adjust parameters
             self.target_size_spin.setValue(max(w, h))
@@ -1948,7 +1949,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         # Execute dialog
         if dialog.exec() == QDialog.DialogCode.Accepted and 'rect' in selection:
             self.ref_square = (self.image_paths[image_combo.currentIndex()], *selection['rect'])
-            self.status_label.setText("🎯 Reference square selected")
+            self.status_label.setText("?? Reference square selected")
             
     def _start_detection(self):
         """Start square detection process"""
@@ -1988,7 +1989,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         """Stop current processing"""
         if self.thread and self.thread.isRunning():
             self.thread.stop()
-            self.status_label.setText("⏹️ Stopping process...")
+            self.status_label.setText("?? Stopping process...")
             
     def _on_detection_finished(self, squares):
         """Handle detection completion"""
@@ -2003,7 +2004,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         
     def _on_thread_finished(self):
         """Handle thread completion"""
-        self.status_label.setText("✅ Process completed successfully!")
+        self.status_label.setText("? Process completed successfully!")
         self.thread = None
         self._update_ui_states()
         
@@ -2022,7 +2023,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
             squares = groups[image_path]
             
             # Image header
-            header = QLabel(f"📁 <b>{os.path.basename(image_path)}</b> ({len(squares)} squares)")
+            header = QLabel(f"?? <b>{os.path.basename(image_path)}</b> ({len(squares)} squares)")
             header.setStyleSheet("""
                 QLabel {
                     font-size: 14px;
@@ -2092,7 +2093,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         
         # Quality indicator
         quality_color = "#27ae60" if square.overall_quality > 0.7 else "#f39c12" if square.overall_quality > 0.4 else "#e74c3c"
-        quality_label = QLabel(f"⭐ {square.overall_quality:.2f}")
+        quality_label = QLabel(f"? {square.overall_quality:.2f}")
         quality_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         quality_label.setStyleSheet(f"font-size: 10px; color: {quality_color}; font-weight: bold;")
         layout.addWidget(quality_label)
@@ -2101,28 +2102,28 @@ class EnhancedImageAnalysisApp(QMainWindow):
         
     def _update_stats(self):
         """Update statistics display"""
-        stats_text = "📊 ANALYSIS STATISTICS\n"
+        stats_text = "?? ANALYSIS STATISTICS\n"
         stats_text += "=" * 50 + "\n\n"
         
         # Image statistics
-        stats_text += f"📁 Images loaded: {len(self.image_paths)}\n"
+        stats_text += f"?? Images loaded: {len(self.image_paths)}\n"
         if self.image_paths:
             total_size = sum(os.path.getsize(p) for p in self.image_paths if os.path.exists(p))
-            stats_text += f"💾 Total size: {total_size / (1024*1024):.1f} MB\n"
+            stats_text += f"?? Total size: {total_size / (1024*1024):.1f} MB\n"
             
         stats_text += "\n"
         
         # Square statistics
-        stats_text += f"🔍 Squares detected: {len(self.subsquares)}\n"
+        stats_text += f"?? Squares detected: {len(self.subsquares)}\n"
         if self.subsquares:
             qualities = [s.overall_quality for s in self.subsquares]
             texture_qualities = [s.texture_quality for s in self.subsquares]
             edge_qualities = [s.edge_quality for s in self.subsquares]
             
-            stats_text += f"⭐ Average quality: {np.mean(qualities):.3f}\n"
-            stats_text += f"📈 Quality range: {np.min(qualities):.3f} - {np.max(qualities):.3f}\n"
-            stats_text += f"🎨 Texture quality: {np.mean(texture_qualities):.3f}\n"
-            stats_text += f"📐 Edge quality: {np.mean(edge_qualities):.3f}\n"
+            stats_text += f"? Average quality: {np.mean(qualities):.3f}\n"
+            stats_text += f"?? Quality range: {np.min(qualities):.3f} - {np.max(qualities):.3f}\n"
+            stats_text += f"?? Texture quality: {np.mean(texture_qualities):.3f}\n"
+            stats_text += f"?? Edge quality: {np.mean(edge_qualities):.3f}\n"
             
         stats_text += "\n"
         
@@ -2146,32 +2147,32 @@ class EnhancedImageAnalysisApp(QMainWindow):
                         scores.append(data_item)
                         
             if scores:
-                stats_text += f"🔗 Correlation pairs: {len(scores)}\n"
-                stats_text += f"📊 Average correlation: {np.mean(scores):.3f}\n"
-                stats_text += f"📈 Correlation range: {np.min(scores):.3f} - {np.max(scores):.3f}\n"
-                stats_text += f"🏆 High correlations (>0.8): {sum(1 for s in scores if s > 0.8)}\n"
-                stats_text += f"⚠️ Low correlations (<0.3): {sum(1 for s in scores if s < 0.3)}\n"
+                stats_text += f"?? Correlation pairs: {len(scores)}\n"
+                stats_text += f"?? Average correlation: {np.mean(scores):.3f}\n"
+                stats_text += f"?? Correlation range: {np.min(scores):.3f} - {np.max(scores):.3f}\n"
+                stats_text += f"?? High correlations (>0.8): {sum(1 for s in scores if s > 0.8)}\n"
+                stats_text += f"?? Low correlations (<0.3): {sum(1 for s in scores if s < 0.3)}\n"
                 
                 if texture_scores and edge_scores:
-                    stats_text += f"🎨 Avg texture score: {np.mean(texture_scores):.3f}\n"
-                    stats_text += f"📐 Avg edge score: {np.mean(edge_scores):.3f}\n"
+                    stats_text += f"?? Avg texture score: {np.mean(texture_scores):.3f}\n"
+                    stats_text += f"?? Avg edge score: {np.mean(edge_scores):.3f}\n"
                     
         stats_text += "\n"
         
         # System information
-        stats_text += "🖥️ SYSTEM INFO\n"
+        stats_text += "??? SYSTEM INFO\n"
         stats_text += "-" * 30 + "\n"
-        stats_text += f"💻 CPU cores: {os.cpu_count()}\n"
-        stats_text += f"🧠 RAM: {psutil.virtual_memory().total / (1024**3):.1f} GB\n"
+        stats_text += f"?? CPU cores: {os.cpu_count()}\n"
+        stats_text += f"?? RAM: {psutil.virtual_memory().total / (1024**3):.1f} GB\n"
         
         try:
             gpus = GPUtil.getGPUs()
             if gpus:
                 gpu = gpus[0]
-                stats_text += f"🎮 GPU: {gpu.name}\n"
-                stats_text += f"📊 GPU Memory: {gpu.memoryTotal} MB\n"
+                stats_text += f"?? GPU: {gpu.name}\n"
+                stats_text += f"?? GPU Memory: {gpu.memoryTotal} MB\n"
         except:
-            stats_text += f"🎮 GPU: Not detected\n"
+            stats_text += f"?? GPU: Not detected\n"
             
         self.stats_widget.setText(stats_text)
         
@@ -2247,10 +2248,10 @@ class EnhancedImageAnalysisApp(QMainWindow):
                                 f"{texture_weight:.6f}", f"{edge_weight:.6f}"
                             ])
                             
-                self.status_label.setText(f"💾 Results exported to {os.path.basename(file_path)}")
+                self.status_label.setText(f"?? Results exported to {os.path.basename(file_path)}")
                 
             except Exception as e:
-                self.status_label.setText(f"❌ Export failed: {str(e)}")
+                self.status_label.setText(f"? Export failed: {str(e)}")
                 
     def closeEvent(self, event):
         """Handle application close"""
@@ -2273,15 +2274,17 @@ def main():
     app.setOrganizationName("Scientific Analysis Tools")
     
     # Enable high DPI scaling
-    app.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-    app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+    # The attribute AA_EnableHighDpiScaling is from PyQt5 and has been renamed in PyQt6.
+    # We revert to the PyQt5 name as it seems to be what the user's environment expects.
+    # app.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+    # app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
     
     # Create and show main window
     window = EnhancedImageAnalysisApp()
     window.show()
     
     # Add splash screen effect
-    window.status_label.setText("🎉 Welcome to 2D Correlation Analysis Tool v2.0!")
+    window.status_label.setText("?? Welcome to 2D Correlation Analysis Tool v2.0!")
     
     return app.exec()
 
