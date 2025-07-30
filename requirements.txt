@@ -1,0 +1,7 @@
+numpy
+opencv-python
+psutil
+GPUtil
+PyQt6
+PyQt6-WebEngine
+plotly
