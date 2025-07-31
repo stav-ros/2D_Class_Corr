@@ -5,3 +5,8 @@ GPUtil
 PyQt6
 PyQt6-WebEngine
 plotly
+# Optional GPU Acceleration Libraries 
+#---Install ONE of the following if you have a compatible NVIDIA GPU and CUDA installed.See the respective library's documentation for specific installation instructions.For CuPy support (replace with your CUDA version, e.g., cupy-cuda11x)
+cupy-cuda12x
+#For PyTorch support (install with CUDA enabled)
+torch
