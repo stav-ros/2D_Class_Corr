@@ -2,7 +2,7 @@
 """
 ==================================================================================================
 ||                                                                                              ||
-||      🔬 2D Class Average Analysis Tool v3.8 (Restored & Enhanced, GPU Accelerated) 🔬        ||
+||      🔬 2D Class Average Analysis Tool v4.2 (Restored & Enhanced, GPU Accelerated) 🔬        ||
 ||                                                                                              ||
 ==================================================================================================
 ||                                                                                              ||
@@ -15,18 +15,23 @@
 ||  cryo-electron microscopy. The tool detects particles (subsquares), preprocesses them,        ||
 ||  and performs intensive pairwise cross-correlation to identify structural similarities.      ||
 ||                                                                                              ||
-||  This version uses a stable method for displaying the heatmap by generating an HTML file     ||
-||  and opening it in the system's default web browser, avoiding unstable embedded components.  ||
+||  This version uses a stable method for displaying plots by generating an HTML file           ||
+||  and opening it in a dedicated application window, avoiding system browser dependencies.     ||
 ||                                                                                              ||
 ||  Core Features:                                                                              ||
 ||  - GPU acceleration via CuPy or PyTorch for massive speed-up in correlation.                 ||
 ||  - Fully functional Automatic and Reference-Based particle detection modes.                  ||
-||  - NEW: Selectable correlation modes (All vs All, One Image vs Others).                      ||
-||  - NEW: Pre-analysis quality filter to remove low-variance/noise particles.                  ||
+||  - Selectable correlation modes (All vs All, One Image vs Others).                           ||
+||  - Pre-analysis quality filter to remove low-variance/noise particles.                       ||
 ||  - FIX: Rotational alignment is now correctly visualized in the Top Pairs gallery.           ||
+||  - FIX: Quality filter is now correctly applied to all analysis steps.                       ||
+||  - FIX: Correlation processing logic has been restored to a stable state.                    ||
+||  - FIX: App icon loading is now more robust.                                                 ||
+||  - NEW: User-configurable rotation step for correlation search.                              ||
+||  - NEW: Shortened particle naming for 'J####' files.                                         ||
+||  - NEW: Heatmap and Network Graph now open in a dedicated, stable app window.                ||
 ||  - Advanced image preprocessing pipeline (CLAHE, advanced edge detection).                   ||
 ||  - Dynamic quality weighting for more accurate and nuanced correlation scores.               ||
-||  - Stable heatmap generation that opens in an external browser.                              ||
 ||  - A rich top-pairs gallery for detailed results visualization.                              ||
 ||  - Particle Analysis window with per-particle average scores and best matches.               ||
 ||  - Detailed system monitoring (CPU, RAM, GPU) and granular progress feedback.                ||
@@ -39,6 +44,7 @@
 # --- Core Imports ---
 import sys
 import os
+import re
 import cv2
 import numpy as np
 import psutil
@@ -65,7 +71,7 @@ from PyQt6.QtWidgets import (
     QSpinBox, QDoubleSpinBox, QGroupBox, QGridLayout, QRadioButton, QButtonGroup,
     QComboBox, QDialog, QDialogButtonBox, QFrame,
     QSplitter, QTabWidget, QTextEdit, QCheckBox, QSlider, QStackedWidget,
-    QMenuBar, QTableWidget, QTableWidgetItem, QHeaderView
+    QMenuBar, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox
 )
 from PyQt6.QtGui import (
     QPixmap, QImage, QIcon, QPainter, QPen, QColor, QTransform, QFont,
@@ -73,8 +79,9 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import (
     Qt, QSize, QThread, pyqtSignal, QPoint, QRect, QObject, pyqtSlot, QTimer,
-    QSettings, QByteArray
+    QSettings, QByteArray, QUrl
 )
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 # Import for plotting library.
 import plotly.graph_objects as go
 
@@ -540,8 +547,16 @@ class Subsquare:
         self.bbox = bbox # The bounding box (x, y, w, h) in the original image.
         self.processed_img = proc # The preprocessed image used for texture correlation.
         self.edge_img = edge # The edge-detected image used for edge correlation.
-        # A globally unique identifier for this particle.
-        self.unique_id = f"{os.path.basename(path).split('.')[0]}_{grid_id}"
+        
+        # NEW: Smart naming for files like 'J1024_...'
+        base_name = os.path.basename(path).split('.')[0]
+        match = re.match(r"(J\d+)_", base_name)
+        if match:
+            short_name = match.group(1)
+            self.unique_id = f"{short_name}_{grid_id}"
+        else:
+            self.unique_id = f"{base_name}_{grid_id}"
+
         self.texture_quality = 0.0
         self.edge_quality = 0.0
         self.overall_quality = 0.0
@@ -906,11 +921,10 @@ class EnhancedCorrelationProcessor(QThread):
     progress_value = pyqtSignal(int)
     finished_correlation = pyqtSignal(object)
 
-    def __init__(self, subsquares, mode, source_image_path=None):
+    def __init__(self, subsquares, params):
         super().__init__()
         self.subsquares = subsquares
-        self.mode = mode
-        self.source_image_path = source_image_path
+        self.params = params
         self.data = None
         self._is_running = True
 
@@ -952,19 +966,22 @@ class EnhancedCorrelationProcessor(QThread):
     def _generate_pairs(self):
         """Generates the list of pairs to compare based on the selected mode."""
         n = len(self.subsquares)
-        if self.mode == "All vs. All":
+        mode = self.params.get("comparison_mode")
+        source_image_path = self.params.get("source_image_path")
+
+        if mode == "All vs. All":
             logging.info("Generating pairs for 'All vs. All' mode.")
             # Create a list of all unique pairs (i, j) where i <= j
             return [(i, j) for i in range(n) for j in range(i, n)]
         
-        elif self.mode == "One Image vs. Others":
-            if not self.source_image_path:
+        elif mode == "One Image vs. Others":
+            if not source_image_path:
                 logging.error("'One Image vs. Others' mode selected but no source image was provided.")
                 return []
             
-            logging.info(f"Generating pairs for 'One Image vs. Others' mode. Source: {os.path.basename(self.source_image_path)}")
-            source_indices = [i for i, s in enumerate(self.subsquares) if s.original_image_path == self.source_image_path]
-            other_indices = [i for i, s in enumerate(self.subsquares) if s.original_image_path != self.source_image_path]
+            logging.info(f"Generating pairs for 'One Image vs. Others' mode. Source: {os.path.basename(source_image_path)}")
+            source_indices = [i for i, s in enumerate(self.subsquares) if s.original_image_path == source_image_path]
+            other_indices = [i for i, s in enumerate(self.subsquares) if s.original_image_path != source_image_path]
             
             # Also include comparisons within the source image itself
             source_vs_source_pairs = [(i, j) for i_idx, i in enumerate(source_indices) for j in source_indices[i_idx:]]
@@ -977,15 +994,14 @@ class EnhancedCorrelationProcessor(QThread):
     def _process_pairs_threaded(self, pairs, use_gpu):
         """Manages a thread pool to process correlation pairs in parallel."""
         total_pairs = len(pairs)
-        # Use fewer workers if on GPU to avoid starving it with data transfer overhead.
-        # Use more workers if on CPU to leverage multi-core processing.
-        max_workers = 4 if use_gpu else min(16, os.cpu_count() + 4)
+        # Use a higher number of workers to try and feed the GPU faster.
+        max_workers = 8 if use_gpu else min(16, os.cpu_count() + 4)
         
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all pairs to the thread pool for execution.
             future_to_pair = {executor.submit(self._process_pair, pair, use_gpu): pair for pair in pairs}
             
-            completed = 0
+            completed_pairs = 0
             for future in as_completed(future_to_pair):
                 if not self._is_running:
                     # If a stop is requested, attempt to cancel remaining futures.
@@ -1002,13 +1018,13 @@ class EnhancedCorrelationProcessor(QThread):
                 except Exception as e:
                     logging.error(f"Error processing pair {pair}: {e}", exc_info=True)
 
-                completed += 1
-                progress_val = int((completed / total_pairs) * 100)
+                completed_pairs += 1
+                progress_val = int((completed_pairs / total_pairs) * 100)
                 self.progress_value.emit(progress_val)
                 # Update the detail text periodically to avoid overwhelming the GUI event loop.
-                if completed % 50 == 0:
+                if completed_pairs % 50 == 0 or completed_pairs == total_pairs:
                     prefix = "🚀" if use_gpu else "⚙️"
-                    self.progress.emit(f"{prefix} Correlated pair {completed}/{total_pairs}")
+                    self.progress.emit(f"{prefix} Correlated pair {completed_pairs}/{total_pairs}")
 
     def _process_pair(self, pair, use_gpu):
         """Processes a single pair of subsquares to calculate their correlation."""
@@ -1052,8 +1068,11 @@ class EnhancedCorrelationProcessor(QThread):
         gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY) if len(img2.shape) == 3 else img2
 
         max_correlation, best_angle = -1.0, 0
+        
+        rotation_step = self.params.get("rotation_step", 15)
+
         # Check a range of angles to find the best rotational alignment.
-        for angle in range(0, 360, 15):
+        for angle in range(0, 360, rotation_step):
             if not self._is_running: break
             center = (gray2.shape[1] // 2, gray2.shape[0] // 2)
             M = cv2.getRotationMatrix2D(center, angle, 1.0)
@@ -1274,26 +1293,29 @@ class TopPairsGallery(QDialog):
         return widget
     
     def _create_comparison_pixmap(self, s1, s2, angle):
-        img1 = s1.to_qpixmap(size=100)
-        img2_orig = s2.to_qpixmap(size=100)
+        # FIX: Use OpenCV for rotation to guarantee correct visual alignment.
+        img1_data = s1.processed_img
+        img2_data = s2.processed_img
         
-        # FIX: Correctly render the rotated pixmap in the preview.
-        # The transform needs to be applied, and the drawing coordinates must
-        # account for the new bounding box of the rotated image to center it properly.
-        transform = QTransform().rotate(angle)
-        img2_rotated = img2_orig.transformed(transform, Qt.TransformationMode.SmoothTransformation)
+        if img1_data is None or img2_data is None:
+            return QPixmap(210, 100)
+            
+        # Rotate the second image using OpenCV
+        center = (img2_data.shape[1] // 2, img2_data.shape[0] // 2)
+        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated_img2_data = cv2.warpAffine(img2_data, M, (img2_data.shape[1], img2_data.shape[0]))
         
-        combined_pixmap = QPixmap(210, 100)
-        combined_pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QPainter(combined_pixmap)
-        painter.drawPixmap(0, 0, img1)
-        # Calculate the correct offset to center the (potentially larger) rotated pixmap
-        x_offset = 110 + (100 - img2_rotated.width()) / 2
-        y_offset = (100 - img2_rotated.height()) / 2
-        painter.drawPixmap(int(x_offset), int(y_offset), img2_rotated)
-        painter.end()
-        return combined_pixmap
+        # Combine the two images side-by-side
+        combined_img = cv2.hconcat([img1_data, rotated_img2_data])
         
+        # Convert the combined OpenCV image to a QPixmap
+        h, w, ch = combined_img.shape
+        bytes_per_line = ch * w
+        q_img = QImage(combined_img.data, w, h, bytes_per_line, QImage.Format.Format_BGR888)
+        pixmap = QPixmap.fromImage(q_img)
+        
+        return pixmap.scaled(QSize(200, 100), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
     def _view_pair(self, i, j, score, angle, metadata):
         s1, s2 = self.subsquares[i], self.subsquares[j]
         viewer = ZoomableViewer(s1, s2, score, angle, metadata, self)
@@ -1510,6 +1532,32 @@ class ParticleAnalysisDialog(QDialog):
         viewer.exec()
 
 
+# --- NEW WIDGET: Plotly Viewer Dialog ---
+class PlotlyViewerDialog(QDialog):
+    """A dedicated dialog window to display a Plotly figure in a QWebEngineView."""
+    def __init__(self, fig, title="Plot Viewer", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(1000, 800)
+        
+        self.figure = fig
+        
+        layout = QVBoxLayout(self)
+        self.webview = QWebEngineView()
+        layout.addWidget(self.webview)
+        
+        self._render_figure()
+
+    def _render_figure(self):
+        """Saves the figure to a temporary HTML file and loads it."""
+        try:
+            html_content = self.figure.to_html(full_html=True, include_plotlyjs='cdn')
+            self.webview.setHtml(html_content)
+        except Exception as e:
+            logging.error(f"Failed to render Plotly figure: {e}", exc_info=True)
+            self.webview.setHtml(f"<h1>Error rendering plot</h1><p>{e}</p>")
+
+
 # --- Main Application Window ---
 
 class EnhancedImageAnalysisApp(QMainWindow):
@@ -1551,7 +1599,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         """Applies the stylesheet generated from the current theme."""
         theme_name = self.settings.value("theme", "light", type=str)
         AppTheme.set_theme(theme_name)
-        self.setWindowTitle(f"🔬 2D Class Average Analysis Tool v3.8 ({theme_name.title()} Mode)")
+        self.setWindowTitle(f"🔬 2D Class Average Analysis Tool v4.1 ({theme_name.title()} Mode)")
         self.setStyleSheet(AppTheme.get_stylesheet())
 
     def _init_ui(self):
@@ -1650,6 +1698,10 @@ class EnhancedImageAnalysisApp(QMainWindow):
         params_layout.addWidget(QLabel("Min. Quality Score:"), 3, 0)
         self.min_quality_spin = QDoubleSpinBox(); self.min_quality_spin.setRange(0.0, 1.0); self.min_quality_spin.setSingleStep(0.05); self.min_quality_spin.setValue(0.0)
         params_layout.addWidget(self.min_quality_spin, 3, 1)
+        # NEW: Rotation Step
+        params_layout.addWidget(QLabel("Rotation Step (°):"), 4, 0)
+        self.rotation_step_spin = QSpinBox(); self.rotation_step_spin.setRange(1, 90); self.rotation_step_spin.setValue(15)
+        params_layout.addWidget(self.rotation_step_spin, 4, 1)
 
         # Processing Group
         process_group = QGroupBox("🚀 Processing")
@@ -1682,11 +1734,13 @@ class EnhancedImageAnalysisApp(QMainWindow):
         results_group = QGroupBox("📋 Results")
         results_layout = QVBoxLayout(results_group)
         self.heatmap_btn = QPushButton("🔥 Show Heatmap"); self.heatmap_btn.clicked.connect(self._show_heatmap)
+        # FIX: Add the new network graph button to the layout
+        self.network_btn = QPushButton("🕸️ Show Network Graph"); self.network_btn.clicked.connect(self._show_network_graph)
         self.gallery_btn = QPushButton("🏆 Show Top Pairs"); self.gallery_btn.clicked.connect(self._show_gallery)
-        # NEW: Button for the particle analysis window
         self.analysis_btn = QPushButton("📊 Particle Analysis"); self.analysis_btn.clicked.connect(self._show_particle_analysis)
         self.export_btn = QPushButton("💾 Export Results"); self.export_btn.clicked.connect(self._export_results)
         results_layout.addWidget(self.heatmap_btn)
+        results_layout.addWidget(self.network_btn)
         results_layout.addWidget(self.gallery_btn)
         results_layout.addWidget(self.analysis_btn)
         results_layout.addWidget(self.export_btn)
@@ -1766,6 +1820,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         self.analyze_btn.setEnabled(bool(self.filtered_subsquares) and not is_processing)
         self.stop_btn.setEnabled(is_processing)
         self.heatmap_btn.setEnabled(has_correlation and not is_processing)
+        self.network_btn.setEnabled(has_correlation and not is_processing)
         self.gallery_btn.setEnabled(has_correlation and not is_processing)
         self.analysis_btn.setEnabled(has_correlation and not is_processing)
         self.export_btn.setEnabled(has_correlation and not is_processing)
@@ -1905,17 +1960,9 @@ class EnhancedImageAnalysisApp(QMainWindow):
             self.status_label.setText("⚠️ No particles passed the quality filter. Adjust parameters.")
             return
 
-        mode = self.comparison_mode_combo.currentText()
-        source_image_path = None
-        if mode == "One Image vs. Others":
-            if self.source_image_combo.currentIndex() >= 0:
-                source_image_path = self.image_paths[self.source_image_combo.currentIndex()]
-            else:
-                logging.error("Cannot start 'One vs Others' analysis: no source image selected.")
-                self.status_label.setText("❌ Select a source image for 'One vs Others' mode.")
-                return
-
-        self.thread = EnhancedCorrelationProcessor(self.filtered_subsquares, mode, source_image_path)
+        params = self._get_analysis_parameters()
+        
+        self.thread = EnhancedCorrelationProcessor(self.filtered_subsquares, params)
         self.thread.progress.connect(self.progress_bar.setDetailText)
         self.thread.progress_value.connect(self.progress_bar.setValue)
         self.thread.finished_correlation.connect(self._on_analysis_finished)
@@ -2039,6 +2086,19 @@ class EnhancedImageAnalysisApp(QMainWindow):
             'ref_threshold': self.ref_thresh_spin.value()
         }
 
+    def _get_analysis_parameters(self):
+        """Collects all analysis-specific parameters from the UI."""
+        params = {
+            'rotation_step': self.rotation_step_spin.value(),
+            'comparison_mode': self.comparison_mode_combo.currentText()
+        }
+        if params['comparison_mode'] == "One Image vs. Others":
+            if self.source_image_combo.currentIndex() >= 0:
+                params['source_image_path'] = self.image_paths[self.source_image_combo.currentIndex()]
+            else:
+                params['source_image_path'] = None
+        return params
+
     def _show_heatmap(self):
         """
         Generates the heatmap, saves it as a temporary HTML file, and opens
@@ -2075,14 +2135,9 @@ class EnhancedImageAnalysisApp(QMainWindow):
                 plot_bgcolor=T['CONTENT_BG'],
             )
 
-            # Create a temporary file to store the HTML.
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-                fig.write_html(f, full_html=True, include_plotlyjs='cdn')
-                temp_path = f.name
-            
-            # Open the generated file in the default web browser.
-            webbrowser.open('file://' + os.path.realpath(temp_path))
-            msg = "🔥 Heatmap opened in your default browser."
+            viewer = PlotlyViewerDialog(fig, "🔥 Heatmap Viewer", self)
+            viewer.exec()
+            msg = "🔥 Heatmap closed."
             self.status_label.setText(msg)
             logging.info(msg)
 
@@ -2102,6 +2157,113 @@ class EnhancedImageAnalysisApp(QMainWindow):
         if self.correlation_data is not None:
             analysis_dialog = ParticleAnalysisDialog(self.correlation_data, self.filtered_subsquares, self)
             analysis_dialog.exec()
+            
+    def _show_network_graph(self):
+        """
+        Generates an interactive network graph of particle relationships
+        and opens it in the user's default web browser.
+        """
+        if self.correlation_data is None:
+            logging.warning("Network graph requested but no correlation data is available.")
+            self.status_label.setText("⚠️ No correlation data to display.")
+            return
+
+        try:
+            self.status_label.setText("🕸️ Generating network graph...")
+            QApplication.processEvents()
+
+            # --- Graph Data Preparation ---
+            nodes = self.filtered_subsquares
+            n = len(nodes)
+            # A threshold to decide if a connection is strong enough to be drawn.
+            correlation_threshold = 0.8 
+
+            edge_x, edge_y = [], []
+            
+            for i in range(n):
+                for j in range(i + 1, n):
+                    item = self.correlation_data[i, j]
+                    if item and item[0] > correlation_threshold:
+                        # For each edge, we need the start and end coordinates.
+                        # We'll assign coordinates later. For now, store indices.
+                        edge_x.extend([i, j, None]) # 'None' creates a break in the line
+                        edge_y.extend([i, j, None]) # Using indices as placeholders for now
+
+            # FIX: Check if any edges were created before trying to plot.
+            if not edge_x:
+                msg = "No pairs found above the correlation threshold of 0.8 to build a network graph."
+                QMessageBox.information(self, "Network Graph", msg)
+                logging.warning(msg)
+                self.status_label.setText("🕸️ No strong correlations to graph.")
+                return
+
+            # --- Node Layout (Simple Circle) ---
+            # Arrange nodes in a circle for a clean initial layout.
+            node_x = [np.cos(2 * np.pi * i / n) for i in range(n)]
+            node_y = [np.sin(2 * np.pi * i / n) for i in range(n)]
+            
+            # Now, replace the placeholder indices in edge_x/y with actual coordinates
+            final_edge_x = [node_x[i] if i is not None else None for i in edge_x]
+            final_edge_y = [node_y[i] if i is not None else None for i in edge_y]
+
+            # --- Create Plotly Traces ---
+            T = AppTheme.CURRENT
+            edge_trace = go.Scatter(
+                x=final_edge_x, y=final_edge_y,
+                line=dict(width=0.5, color=T['BORDER']),
+                hoverinfo='none',
+                mode='lines')
+
+            node_trace = go.Scatter(
+                x=node_x, y=node_y,
+                mode='markers',
+                hoverinfo='text',
+                text=[node.unique_id for node in nodes],
+                marker=dict(
+                    showscale=True,
+                    colorscale='YlGnBu',
+                    reversescale=True,
+                    color=[s.overall_quality for s in nodes],
+                    size=10,
+                    colorbar=dict(
+                        thickness=15,
+                        title='Particle Quality',
+                        xanchor='left',
+                        titleside='right'
+                    ),
+                    line_width=2))
+
+            # --- Create Figure ---
+            fig = go.Figure(data=[edge_trace, node_trace],
+                         layout=go.Layout(
+                            title='Particle Correlation Network Graph',
+                            titlefont_size=16,
+                            showlegend=False,
+                            hovermode='closest',
+                            margin=dict(b=20,l=5,r=5,t=40),
+                            annotations=[dict(
+                                text=f"Edges shown for correlations > {correlation_threshold}",
+                                showarrow=False,
+                                xref="paper", yref="paper",
+                                x=0.005, y=-0.002 )],
+                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                            paper_bgcolor=T['BACKGROUND'],
+                            plot_bgcolor=T['CONTENT_BG'],
+                            font=dict(color=T['TEXT'])
+                        ))
+            
+            viewer = PlotlyViewerDialog(fig, "🕸️ Network Graph Viewer", self)
+            viewer.exec()
+            msg = "🕸️ Network graph closed."
+            self.status_label.setText(msg)
+            logging.info(msg)
+
+        except Exception as e:
+            msg = f"❌ Failed to generate network graph: {e}"
+            self.status_label.setText(msg)
+            logging.error(msg, exc_info=True)
+
 
     def _export_results(self):
         """Exports the correlation results to a CSV file."""
@@ -2154,6 +2316,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         self.target_size_spin.setValue(self.settings.value("target_size", 128, type=int))
         self.ref_thresh_spin.setValue(self.settings.value("ref_thresh", 0.7, type=float))
         self.min_quality_spin.setValue(self.settings.value("min_quality", 0.0, type=float))
+        self.rotation_step_spin.setValue(self.settings.value("rotation_step", 15, type=int))
         logging.info("Loaded application settings.")
 
     def _save_settings(self):
@@ -2167,6 +2330,7 @@ class EnhancedImageAnalysisApp(QMainWindow):
         self.settings.setValue("target_size", self.target_size_spin.value())
         self.settings.setValue("ref_thresh", self.ref_thresh_spin.value())
         self.settings.setValue("min_quality", self.min_quality_spin.value())
+        self.settings.setValue("rotation_step", self.rotation_step_spin.value())
         self.status_label.setText("💾 Settings saved.")
         logging.info("Application settings saved.")
 
@@ -2183,24 +2347,30 @@ class EnhancedImageAnalysisApp(QMainWindow):
 def main():
     """Main application entry point."""
     app = QApplication(sys.argv)
-    app.setApplicationName("2D Correlation Analysis Tool")
-    app.setApplicationVersion("3.8 (Stable)")
+    app.setApplicationName("2D Class Correlation Analysis Tool")
+    app.setApplicationVersion("2 (Stable)")
     app.setOrganizationName("StavrosAzinas")
     
     # --- FIX: Robustly set the application icon ---
     # This determines the script's directory and builds an absolute path to the icon.
     # This ensures the icon is found regardless of where the script is run from.
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if getattr(sys, 'frozen', False):
+        # If the application is run as a bundle (e.g., PyInstaller)
+        script_dir = sys._MEIPASS
+    else:
+        # If the application is run as a script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+    
     icon_path = os.path.join(script_dir, "app_icon.png")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     else:
-        print("⚠️ app_icon.png not found in the script directory. No icon will be set.")
+        print(f"⚠️ app_icon.png not found at '{icon_path}'. No icon will be set.")
 
     window = EnhancedImageAnalysisApp()
     window.show()
     
-    window.status_label.setText("🎉 Welcome to the 2D Correlation Analysis Tool v3.8!")
+    window.status_label.setText("🎉 Welcome to the 2D Correlation Analysis Tool v2!")
     logging.info("="*40)
     logging.info("      Application Started Successfully")
     logging.info(f"      GPU Available: {GPU_AVAILABLE} (Backend: {GPU_BACKEND or 'N/A'})")
