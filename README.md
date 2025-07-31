@@ -72,6 +72,7 @@ V
 | \[Interactive Heatmap\] & \[Filterable Gallery\] |  
 | & \[Detailed Zoom Viewer\] |  
 +---------------------------------------------------+  
+(Scroll to the end of this document for further explanation of the methods used)
 
 ### **🚀 Getting Started**
 
@@ -92,7 +93,7 @@ pip install -r requirements.txt
 
 Save the code as cryo_correlator_v2.py and run it from your terminal:
 
-python cryo_correlator_v2.py  
+python cryo_2d_corr_v2.py  
 
 #### **3\. Using the App**
 
@@ -100,3 +101,75 @@ python cryo_correlator_v2.py
 2. Choose your **Detection Mode** (Automatic is a great start).
 3. Click **"🔍 Detect Squares"**. The status bar will confirm how many squares were found.
 4. Once detection is complete, click **"📊 Analyze Correlations"**. This may take a moment, especially with many squares, as it's performing thousands of
+
+The 2D Correlation Method Explained 🔬
+The application measures how different parts of an image have moved between two photos. This technique is a form of Digital Image Correlation (DIC). The specific method used in your script is GPU-Accelerated, Subset-Based Normalized Cross-Correlation (NCC) performed in the frequency domain.
+
+Here is a step-by-step breakdown of how it works:
+
+Step 1: Subsetting the Image
+The first image (your reference image) is not analyzed as a whole. Instead, it's broken down into many small, square sections called subsets or blocks.
+
+In the Script: The block_size parameter controls the dimensions of these squares (e.g., 32x32 pixels).
+
+Step 2: Searching for a Match
+For each subset from Image 1, the algorithm's goal is to find where that exact pattern of pixels has moved to in Image 2.
+
+It defines a larger search area in Image 2, centered on the original subset's coordinates. This gives the algorithm a region to "look around" in.
+
+In the Script: The search_area_multiplier determines the size of this search area. A value of 2.0 means the search area is twice the width and height of the subset.
+
+Step 3: Normalized Cross-Correlation (NCC)
+This is the mathematical heart of the matching process. Cross-correlation is a metric that measures the similarity between the subset from Image 1 and every possible corresponding area within the search area of Image 2.
+
+Why "Normalized"? Simple correlation is sensitive to changes in lighting. If Image 2 is brighter or dimmer than Image 1, the correlation values would be skewed. Normalization fixes this by first subtracting the mean brightness from both the subset and the search area before comparing them. This makes the algorithm robust to simple lighting variations.
+
+In the Script: The lines block_norm = block - cp.mean(block) and search_area_norm = search_area - cp.mean(search_area) perform this crucial normalization step.
+
+Step 4: Acceleration with the Fast Fourier Transform (FFT)
+Calculating correlation pixel-by-pixel is extremely slow. The script uses a massive shortcut called the Convolution Theorem. This theorem states that the complex math of correlation in the pixel domain is equivalent to simple element-wise multiplication in the frequency domain.
+
+The Fast Fourier Transform (FFT) is an incredibly efficient algorithm for converting an image into its frequency representation.
+
+The script uses the GPU (via cupy) to perform FFTs on both the subset and the search area, multiplies them, and then performs an inverse FFT to get the correlation result. This is dramatically faster than the traditional method.
+
+In the Script: The line correlation = cp.fft.ifft2(...) performs this entire frequency-domain operation.
+
+Step 5: Finding the Peak and Displacement
+The result of the correlation is a 2D surface where the value at each point represents the "match quality." The highest point, or peak, on this surface corresponds to the best match.
+
+The algorithm finds the (x, y) coordinates of this peak.
+
+The displacement is the difference between the peak's location and the center of the search area. This gives a vector (dx, dy) representing how far that subset moved.
+
+In the Script: cp.argmax(correlation) finds the location of the peak, and the subsequent lines calculate dx and dy.
+
+This process is repeated for every single subset, resulting in a full vector field of displacements across the entire image.
+
+3. Quality Control (QC) Methods 🧐
+How do you know if the correlation results are accurate and trustworthy? Quality control is essential.
+
+1. Visual Inspection of the Heatmap
+The primary QC tool in this application is the final displacement heatmap. This map visualizes the magnitude of movement (sqrt(dx² + dy²)) for every subset. When you look at it, you should check for:
+
+Smoothness and Physicality: In most real-world scenarios (like material deformation), displacements should be smooth and continuous. The heatmap should show smooth gradients of color. Jagged, noisy, or chaotic-looking areas suggest that the algorithm failed to find a reliable match in those regions.
+
+Outliers: Look for isolated "hot spots" or "cold spots" that don't fit the surrounding pattern. These are likely erroneous vectors where the correlation algorithm latched onto a false peak, perhaps due to repetitive textures, reflections, or significant changes in the surface.
+
+2. The Correlation Coefficient (Implicit QC)
+The peak value of the normalized cross-correlation surface itself is the most direct measure of match quality.
+
+A peak value close to 1.0 indicates a very confident, unambiguous match.
+
+A low peak value (e.g., below 0.7) indicates a poor match. The algorithm couldn't find a convincing look-alike for the subset.
+
+While the current script doesn't explicitly record or use this coefficient for QC, a more advanced version could use it to mask out bad vectors. For instance, it could refuse to display any displacement vector where the peak correlation coefficient was below a certain threshold.
+
+3. Parameter Tuning
+The quality of the result is highly dependent on the parameters you choose.
+
+Block Size: If the block size is too small, it may not contain enough unique texture to be identified reliably. If it's too large, it will average out fine-scale details in the motion.
+
+Search Area: If the search area is too small, the algorithm might lose track of a subset that moved a large distance. If it's too large, it increases computation time and the risk of finding a false match.
+
+Running tests with different parameters and observing the effect on the final heatmap is a practical form of quality control.
